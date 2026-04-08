@@ -2,30 +2,9 @@ import uuid
 import enum
 from datetime import datetime, timedelta
 from shop.extensions import db
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import Index, UniqueConstraint, CheckConstraint
 
 # =================================================================================
-# 🔁 BASE MODEL (DRY FIX)
-# =================================================================================
-
-class BaseModel(db.Model):
-    __abstract__ = True
-
-    id = db.Column(db.Integer, primary_key=True)
-    uuid = db.Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
-
-    is_active = db.Column(db.Boolean, default=True, index=True)
-
-    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    updated_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, server_default=db.func.now(), index=True)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=db.func.now())
-
-
-# =================================================================================
-# ENUMS
+# 💎 ENUMS (Strict Data Types)
 # =================================================================================
 
 class OrderStatus(enum.Enum):
@@ -53,169 +32,182 @@ class OTPAction(enum.Enum):
 
 
 # =================================================================================
-# USERS
+# 🔁 BASE MODEL (Super Trick: Ye 8 fields har table me auto-add ho jayengi)
+# =================================================================================
+class BaseModel(db.Model):
+    __abstract__ = True  # Ye batata hai ki iski khud ki koi table nahi banegi
+
+    id = db.Column(db.Integer, primary_key=True)
+    uuid = db.Column(db.String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()))
+    
+    # 6 MANDATORY FIELDS (Auditing)
+    is_active = db.Column(db.Boolean, default=True)
+    created_by = db.Column(db.Integer, nullable=True) # Integer is safe here
+    updated_by = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=db.func.now())
+
+
+# =================================================================================
+# 🔐 MODULE 1 & 2: AUTH, USERS & ADMIN
 # =================================================================================
 
 class Role(BaseModel):
-    role_name = db.Column(db.String(50), nullable=False, unique=True, index=True)
+    __tablename__ = 'roles'
+    role_name = db.Column(db.String(50), nullable=False, unique=True)
+    users = db.relationship('User', back_populates='role', lazy=True)
 
 class User(BaseModel):
-    username = db.Column(db.String(80), unique=True, nullable=False, index=True)
-    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    __tablename__ = 'users'
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
-    phone = db.Column(db.String(15), unique=True, nullable=True, index=True)
+    phone = db.Column(db.String(15), unique=True, nullable=True)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False) 
+    is_verified = db.Column(db.Boolean, default=False)
 
-    role_id = db.Column(db.Integer, db.ForeignKey('role.id'), nullable=False)
-    is_verified = db.Column(db.Boolean, default=False, index=True)
-
-    role = db.relationship('Role', backref='users')
-
-    __table_args__ = (
-        Index('idx_user_email_phone', 'email', 'phone'),
-    )
-
+    role = db.relationship('Role', back_populates='users')
+    addresses = db.relationship('Address', backref='user', lazy=True)
+    otps = db.relationship('Otp', backref='user', lazy=True)
+    orders = db.relationship('Order', backref='customer', lazy=True)
+    products = db.relationship('Product', backref='seller_user', lazy=True)
 
 class Otp(BaseModel):
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
-    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=True)
-
+    __tablename__ = 'otps'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=True)
     otp_code = db.Column(db.String(10), nullable=False)
-    action = db.Column(db.Enum(OTPAction), nullable=False)
-    is_used = db.Column(db.Boolean, default=False, index=True)
-
-    expires_at = db.Column(db.DateTime, nullable=False, index=True)
-
-    __table_args__ = (
-        Index('idx_otp_user_action', 'user_id', 'action'),
-    )
-
+    action = db.Column(db.Enum(OTPAction), default=OTPAction.verification)
+    is_used = db.Column(db.Boolean, default=False)
+    expires_at = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(minutes=10))
 
 class Address(BaseModel):
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
-
+    __tablename__ = 'addresses'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     full_name = db.Column(db.String(100), nullable=False)
     phone_number = db.Column(db.String(15), nullable=False)
-
     street = db.Column(db.String(255), nullable=False)
-    city = db.Column(db.String(100), nullable=False, index=True)
+    city = db.Column(db.String(100), nullable=False)
     state = db.Column(db.String(100), nullable=False)
-    pincode = db.Column(db.String(20), nullable=False, index=True)
-
+    pincode = db.Column(db.String(20), nullable=False)
     is_default = db.Column(db.Boolean, default=False)
-
-    __table_args__ = (
-        Index('idx_address_user_default', 'user_id', 'is_default'),
-    )
 
 
 # =================================================================================
-# PRODUCT
+# 📦 MODULE 3 & 6: CATALOG, PRODUCTS & SELLER
 # =================================================================================
 
 class Category(BaseModel):
-    name = db.Column(db.String(100), nullable=False, unique=True, index=True)
-    description = db.Column(db.Text)
+    __tablename__ = 'categories'
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    description = db.Column(db.Text, nullable=True)
+    products = db.relationship('Product', backref='category', lazy=True)
 
+class SellerCategory(BaseModel):
+    __tablename__ = 'seller_categories'
+    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
+    is_approved = db.Column(db.Boolean, default=True)
 
 class Product(BaseModel):
-    name = db.Column(db.String(200), nullable=False, index=True)
+    __tablename__ = 'products'
+    name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
-
-    # ❌ FLOAT hata diya
-    price = db.Column(db.Numeric(10, 2), nullable=False)
-
+    price = db.Column(db.Float, nullable=False)
     stock = db.Column(db.Integer, default=0)
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
+    seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
-    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False, index=True)
-    seller_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
-
-    __table_args__ = (
-        CheckConstraint('stock >= 0', name='check_stock_positive'),
-    )
-
+    images = db.relationship('ProductImage', backref='product', cascade="all, delete-orphan", lazy=True)
+    specifications = db.relationship('Specification', backref='product', cascade="all, delete-orphan", lazy=True)
+    reviews = db.relationship('Review', backref='product', lazy=True)
 
 class ProductImage(BaseModel):
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False, index=True)
+    __tablename__ = 'product_images'
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
     image_url = db.Column(db.String(255), nullable=False)
-
     is_primary = db.Column(db.Boolean, default=False)
 
-    __table_args__ = (
-        Index('idx_product_primary_image', 'product_id', 'is_primary'),
-    )
-
-
 class Specification(BaseModel):
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False, index=True)
-
-    spec_key = db.Column(db.String(100), nullable=False)
-    spec_value = db.Column(db.String(255), nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint('product_id', 'spec_key', name='unique_product_spec'),
-    )
+    __tablename__ = 'specifications'
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    spec_key = db.Column(db.String(100), nullable=False)   
+    spec_value = db.Column(db.String(255), nullable=False) 
 
 
 # =================================================================================
-# ORDER
+# 🛒 MODULE 4, 5 & 9: CART, ORDERS, PAYMENT & DISCOUNT
 # =================================================================================
-
-class Order(BaseModel):
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
-    address_id = db.Column(db.Integer, db.ForeignKey('address.id'), nullable=False)
-
-    total_amount = db.Column(db.Numeric(10, 2), nullable=False)
-
-    payment_method = db.Column(db.Enum(PaymentMethod))
-    status = db.Column(db.Enum(OrderStatus), default=OrderStatus.pending, index=True)
-
-
-class OrderItem(BaseModel):
-    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False, index=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
-
-    quantity = db.Column(db.Integer, nullable=False)
-
-    price_at_purchase = db.Column(db.Numeric(10, 2), nullable=False)
-
-    __table_args__ = (
-        CheckConstraint('quantity > 0', name='check_quantity_positive'),
-    )
-
-
-class Payment(BaseModel):
-    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False, unique=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
-    transaction_id = db.Column(db.String(100), unique=True)
-
-    payment_method = db.Column(db.Enum(PaymentMethod), nullable=False)
-    amount = db.Column(db.Numeric(10, 2), nullable=False)
-
-    status = db.Column(db.Enum(PaymentStatus), default=PaymentStatus.pending, index=True)
-
 
 class Coupon(BaseModel):
-    code = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    __tablename__ = 'coupons'
+    code = db.Column(db.String(50), unique=True, nullable=False)
+    discount_percentage = db.Column(db.Float, nullable=True) 
+    discount_flat = db.Column(db.Float, nullable=True)       
+    expiry_date = db.Column(db.DateTime, nullable=False)
 
-    discount_percentage = db.Column(db.Float)
-    discount_flat = db.Column(db.Numeric(10, 2))
+class CartItem(BaseModel):
+    __tablename__ = 'cart_items'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    quantity = db.Column(db.Integer, default=1, nullable=False)
+    product = db.relationship('Product', lazy=True)
 
-    expiry_date = db.Column(db.DateTime, nullable=False, index=True)
+class Order(BaseModel):
+    __tablename__ = 'orders'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    address_id = db.Column(db.Integer, db.ForeignKey('addresses.id'), nullable=False) 
+    total_amount = db.Column(db.Float, nullable=False)
+    payment_method = db.Column(db.Enum(PaymentMethod), nullable=True)
+    status = db.Column(db.Enum(OrderStatus), default=OrderStatus.pending) 
+
+    items = db.relationship('OrderItem', backref='order', cascade="all, delete-orphan", lazy=True)
+    tracking = db.relationship('OrderTracking', backref='order', cascade="all, delete-orphan", lazy=True)
+    payment = db.relationship('Payment', backref='order', uselist=False, lazy=True) 
+    invoice = db.relationship('Invoice', backref='order', uselist=False, lazy=True) 
+
+class OrderItem(BaseModel):
+    __tablename__ = 'order_items'
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    price_at_purchase = db.Column(db.Float, nullable=False) 
+    product = db.relationship('Product', lazy=True)
+
+class Payment(BaseModel):
+    __tablename__ = 'payments'
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False, unique=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    transaction_id = db.Column(db.String(100), unique=True, nullable=True) 
+    payment_method = db.Column(db.Enum(PaymentMethod), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    status = db.Column(db.Enum(PaymentStatus), default=PaymentStatus.pending)
+
+class Invoice(BaseModel):
+    __tablename__ = 'invoices'
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False, unique=True)
+    invoice_number = db.Column(db.String(50), unique=True, nullable=False)
+    pdf_url = db.Column(db.String(255), nullable=True) 
+
+class OrderTracking(BaseModel):
+    __tablename__ = 'order_tracking'
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id'), nullable=False)
+    status = db.Column(db.Enum(OrderStatus), nullable=False)
+    message = db.Column(db.String(255), nullable=True) 
 
 
 # =================================================================================
-# REVIEW
+# ⭐ MODULE 7: WISHLIST & REVIEW
 # =================================================================================
+
+class Wishlist(BaseModel):
+    __tablename__ = 'wishlists'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
 
 class Review(BaseModel):
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False, index=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
-    rating = db.Column(db.Integer, nullable=False)
-    comment = db.Column(db.Text)
-
-    __table_args__ = (
-        CheckConstraint('rating >= 1 AND rating <= 5', name='check_rating_range'),
-        UniqueConstraint('product_id', 'user_id', name='unique_user_review'),
-    )
+    __tablename__ = 'reviews'
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False) # 1 to 5
+    comment = db.Column(db.Text, nullable=True)
