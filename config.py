@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from datetime import timedelta  # 🔥 YE ZAROORI HAI
 
 load_dotenv()
 
@@ -24,19 +25,13 @@ class Config:
     TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
     TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER')
 
-
-    # JWT setup
-    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'default-jwt-secret')
-    
-    # 🔥 TOKEN ROTATION & COOKIE SETUP
+    # Security Cookies Setup
     JWT_TOKEN_LOCATION = ["cookies"]
-    JWT_COOKIE_SECURE = False          # Set to True in Production (HTTPS)
-    JWT_COOKIE_HTTPONLY = True         # Protects against XSS
-    JWT_COOKIE_SAMESITE = "Lax"        
+    JWT_COOKIE_SECURE = False          # Localhost pe False rakhna (Production pe True karna)
+    JWT_COOKIE_HTTPONLY = True
+    JWT_COOKIE_SAMESITE = "Lax"
+    JWT_COOKIE_CSRF_PROTECT = True     # 🔥 Security On
     
-    # 🔥 ENABLE CSRF TO GET csrf_access_token & csrf_refresh_token
-    JWT_COOKIE_CSRF_PROTECT = True     
-    JWT_CSRF_IN_COOKIES = True         # Puts the CSRF token in a readable cookie for frontend
-    
-    JWT_ACCESS_TOKEN_EXPIRES = 900        # 15 min
-    JWT_REFRESH_TOKEN_EXPIRES = 86400     # 1 day
+    # 15 Mins & 7-Day Session Logic Limits
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=7)

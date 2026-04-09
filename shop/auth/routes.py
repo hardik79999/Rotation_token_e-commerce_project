@@ -14,24 +14,21 @@ from flask_jwt_extended import (
 )
 from shop.auth import auth_bp
 from shop.utils.api_response import error_response, success_response
-
+from datetime import datetime, timezone, timedelta
 
 # =====================================================================
-# LOGIN (POST - Data JSON me aayega)
+# LOGIN
 # =====================================================================
 @auth_bp.route('/login', methods=['POST'])
 def login():
     try:
-        # POST method hai toh request.get_json() use karenge
         data = request.get_json() or {}
-
         email = (data.get('email') or '').strip()
         password = data.get('password')
 
         if not email or not password:
             return error_response("Email and password required", 400)
 
-        # Lookup by Email
         user = User.query.filter_by(email=email).first()
 
         if not user or not user.password or not bcrypt.check_password_hash(user.password, password):
@@ -45,22 +42,13 @@ def login():
 
         role_name = user.role.role_name if user.role else "customer"
 
-        # 🔥 IMPORTANT FIX: Ab payload me user_id nahi, 'uuid' store karenge!
         claims = {
             "role": role_name,
-            "user_uuid": user.uuid  # <--- YAHAN UUID USE KIYA
+            "user_uuid": user.uuid
         }
 
-        # Token identity ko bhi UUID set kar diya
-        access_token = create_access_token(
-            identity=user.uuid,
-            additional_claims=claims
-        )
-
-        refresh_token = create_refresh_token(
-            identity=user.uuid,
-            additional_claims=claims
-        )
+        access_token = create_access_token(identity=user.uuid, additional_claims=claims)
+        refresh_token = create_refresh_token(identity=user.uuid, additional_claims=claims)
 
         response = jsonify({
             "success": True,
@@ -73,7 +61,6 @@ def login():
             }
         })
         
-        # Ye functions un 4 cookies ko HTTP Headers me set karte hain
         set_access_cookies(response, access_token)
         set_refresh_cookies(response, refresh_token)
 
@@ -83,15 +70,13 @@ def login():
         print("LOGIN ERROR:", e)
         return error_response(str(e), 500)
 
-
 # =====================================================================
-# SIGNUP (POST - Data JSON me aayega)
+# SIGNUP
 # =====================================================================
 @auth_bp.route('/signup', methods=['POST'])
 def signup():
     try:
         data = request.get_json() or {}
-
         username = (data.get('username') or '').strip()
         email = (data.get('email') or '').strip()
         password = data.get('password')
@@ -104,17 +89,12 @@ def signup():
         if requested_role not in {'customer', 'seller'}:
             return error_response("Invalid role", 400)
 
-        existing_user = User.query.filter(
-            (User.email == email) | (User.username == username)
-        ).first()
+        existing_user = User.query.filter((User.email == email) | (User.username == username)).first()
 
         if existing_user:
             return error_response('User already exists', 409)
 
         user_role = Role.query.filter_by(role_name=requested_role).first()
-        if not user_role:
-            return error_response('Roles not initialized', 500)
-
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
 
         new_user = User(
@@ -128,20 +108,18 @@ def signup():
         )
 
         db.session.add(new_user)
-        db.session.flush() # ID/UUID generate karne ke liye flush karna zaroori hai
+        db.session.flush() 
 
-        # Email Verification Token
         serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
         token = serializer.dumps(new_user.email, salt='email-confirm')
 
-        # Send Email
         send_verification_email(new_user.email, token)
 
         db.session.commit()
 
         return jsonify({
             "success": True,
-            "message": "User registered successfully. Please check your email to verify your account.",
+            "message": "User registered. Please check email to verify.",
             "data": {
                 "uuid": new_user.uuid,
                 "username": new_user.username,
@@ -156,11 +134,10 @@ def signup():
         return error_response(str(e), 500)
 
 # =====================================================================
-# VERIFY EMAIL (GET - Data URL/Path me aayega)
+# VERIFY EMAIL
 # =====================================================================
 @auth_bp.route('/verify/<token>', methods=['GET'])
 def verify_email(token):
-    # GET request me data directly route parameter (<token>) se milta hai
     s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
     try:
         email = s.loads(token, salt='email-confirm', max_age=600) 
@@ -179,27 +156,50 @@ def verify_email(token):
 
     return "User not found", 404
 
-
 # =====================================================================
-# REFRESH TOKEN (POST)
+# REFRESH TOKEN (7-Day Countdown Logic)
 # =====================================================================
 @auth_bp.route('/refresh', methods=['POST'])
 def refresh():
     try:
         verify_jwt_in_request(refresh=True)
         claims = get_jwt()
+        
+        user_uuid = claims["sub"]
+        role_name = claims.get("role")
 
-        # Naya token banate waqt wapas UUID hi pass karenge
+        # 🔥 SIR KA LOGIC: Expiration Countdown
+        exp_timestamp = claims["exp"]
+        now_timestamp = datetime.now(timezone.utc).timestamp()
+        remaining_seconds = exp_timestamp - now_timestamp
+
+        if remaining_seconds <= 0:
+            response = jsonify({"success": False, "message": "Session expired after 7 days. Please login again."})
+            unset_jwt_cookies(response)
+            return response, 401
+
         new_access_token = create_access_token(
-            identity=claims["sub"], # claims["sub"] me user_uuid pada hai
-            additional_claims={
-                "role": claims.get("role"),
-                "user_uuid": claims.get("user_uuid")
-            }
+            identity=user_uuid,
+            additional_claims={"role": role_name, "user_uuid": user_uuid}
         )
 
-        response = jsonify({"message": "Token refreshed"})
+        remaining_delta = timedelta(seconds=remaining_seconds)
+        new_refresh_token = create_refresh_token(
+            identity=user_uuid,
+            additional_claims={"role": role_name, "user_uuid": user_uuid},
+            expires_delta=remaining_delta  
+        )
+
+        days_left = round(remaining_seconds / 86400, 2)
+
+        response = jsonify({
+            "success": True, 
+            "message": "Token refreshed successfully",
+            "session_days_left": days_left
+        })
+        
         set_access_cookies(response, new_access_token)
+        set_refresh_cookies(response, new_refresh_token)
 
         return response, 200
 
@@ -207,22 +207,17 @@ def refresh():
         print("REFRESH ERROR:", e)
         return error_response(str(e), 500)
 
-
 # =====================================================================
-# PROFILE (GET - UUID ke throw database hit karke data nikalna)
+# PROFILE 
 # =====================================================================
 @auth_bp.route('/profile', methods=['GET'])
 def profile():
     try:
         verify_jwt_in_request()
         claims = get_jwt()
-
-        # 🔥 Hamesha UUID se data find karenge!
         user_uuid = claims.get("user_uuid")
         
-        # internal id ki jagah uuid filter lagaya
         user = User.query.filter_by(uuid=user_uuid, is_active=True).first()
-
         if not user:
             return error_response("User not found", 404)
 
@@ -233,7 +228,7 @@ def profile():
                 "username": user.username,
                 "email": user.email,
                 "role": user.role.role_name,
-                "phone": user.phone_number
+                "phone": user.phone
             }
         })
 
@@ -241,9 +236,8 @@ def profile():
         print("PROFILE ERROR:", e)
         return error_response(str(e), 500)
 
-
 # =====================================================================
-# LOGOUT (POST)
+# LOGOUT
 # =====================================================================
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
@@ -254,4 +248,4 @@ def logout():
 
     except Exception as e:
         print("LOGOUT ERROR:", e)
-        return error_response(str(e), 500)
+        return error_response(str(e), 500)  
