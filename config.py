@@ -27,11 +27,10 @@ class Config:
 
     # Security Cookies Setup
     JWT_TOKEN_LOCATION = ["cookies"]
-    JWT_COOKIE_SECURE = False          # Localhost pe False rakhna (Production pe True karna)
+    JWT_COOKIE_SECURE = False          
     JWT_COOKIE_HTTPONLY = True
     JWT_COOKIE_SAMESITE = "Lax"
-    JWT_COOKIE_CSRF_PROTECT = True     # 🔥 Security On
+    JWT_COOKIE_CSRF_PROTECT = True     
     
-    # 15 Mins & 7-Day Session Logic Limits
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=7)

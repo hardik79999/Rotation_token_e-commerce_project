@@ -204,8 +204,18 @@ def refresh():
         return response, 200
 
     except Exception as e:
+        error_msg = str(e)
+        # 🔥 Agar token expire ho gaya hai, toh 500 mat do, clean 401 (Logout) bhej do
+        if "Signature has expired" in error_msg or "Token has expired" in error_msg:
+            response = jsonify({
+                "success": False, 
+                "message": "Session expired. Please login again."
+            })
+            unset_jwt_cookies(response)  # Expired cookies uda do
+            return response, 401
+            
         print("REFRESH ERROR:", e)
-        return error_response(str(e), 500)
+        return error_response(error_msg, 500)
 
 # =====================================================================
 # PROFILE 
@@ -233,8 +243,18 @@ def profile():
         })
 
     except Exception as e:
-        print("PROFILE ERROR:", e)
-        return error_response(str(e), 500)
+        error_msg = str(e)
+        # 🔥 Agar token expire ho gaya hai, toh 500 mat do, clean 401 (Logout) bhej do
+        if "Signature has expired" in error_msg or "Token has expired" in error_msg:
+            response = jsonify({
+                "success": False, 
+                "message": "Session expired. Please login again."
+            })
+            unset_jwt_cookies(response)  # Expired cookies uda do
+            return response, 401
+            
+        print("REFRESH ERROR:", e)
+        return error_response(error_msg, 500)
 
 # =====================================================================
 # LOGOUT
