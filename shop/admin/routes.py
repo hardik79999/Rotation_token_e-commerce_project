@@ -40,9 +40,8 @@ def create_category():
         # 5. Create new Category
         new_category = Category(
             name=name,
-            description=description,
-            user_id=admin_user.id,     # Track kisne banaya
-            created_by=admin_user.id   # Auditing field
+            description=description,     
+            created_by=admin_user.id   
         )
 
         db.session.add(new_category)
