@@ -57,3 +57,29 @@ def send_category_request_email_to_admin(admin_emails, seller_name, category_nam
     except Exception as e:
         print("ADMIN EMAIL ERROR:", e)
         return False
+    
+
+
+
+
+def send_otp_email(user_email, otp_code):
+    try:
+        msg = Message(
+            subject='Password Reset OTP', 
+            sender=current_app.config['MAIL_USERNAME'], 
+            recipients=[user_email]
+        )
+        
+        msg.html = f"""
+        <div style="font-family: Arial; text-align: center; padding: 20px; border: 1px solid #eee;">
+            <h2>Password Reset Request 🔒</h2>
+            <p>Tumhara password reset karne ka OTP niche diya gaya hai:</p>
+            <h1 style="color: #28a745; letter-spacing: 5px;">{otp_code}</h1>
+            <p>Ye OTP 10 minute me expire ho jayega. Kisi ke sath share mat karna!</p>
+        </div>
+        """
+        mail.send(msg)
+        return True
+    except Exception as e:
+        print("OTP EMAIL ERROR:", e)
+        return False

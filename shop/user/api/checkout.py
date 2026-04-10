@@ -2,7 +2,7 @@ import uuid
 from flask import request, jsonify, current_app
 from flask_jwt_extended import verify_jwt_in_request, get_jwt
 from shop.extensions import db
-from shop.models import User, Order, Payment, Address, PaymentMethod, OrderStatus
+from shop.models import User, Order, Payment, Address, PaymentMethod, OrderStatus, CartItem
 from shop.utils.api_response import error_response
 from shop.utils.razorpay_service import get_razorpay_client
 
@@ -29,25 +29,34 @@ def checkout_action():
         except KeyError:
             return error_response(f"Invalid payment method. Use: {', '.join([e.name for e in PaymentMethod])}", 400)
         
-        # 1. Cart ka Total Amount (Ideally yahan CartItem se calculate hona chahiye)
-        total_amount = 500.00 
+        # 1. Cart ka Total Amount
+        cart_items = CartItem.query.filter_by(user_id=user.id, is_active=True).all()
+        if not cart_items:
+            return error_response("Your cart is empty!", 400)
+
+        total_amount = sum(item.quantity * item.product.price for item in cart_items)
 
         # 2. Database me pending order
         new_order = Order(
             user_id=user.id,
             address_id=delivery_address.id,
-            payment_method=selected_method, # Pass Enum object, not string
+            payment_method=selected_method,
             total_amount=total_amount,
-            status=OrderStatus.pending, # Pass Enum
+            status=OrderStatus.pending,
             uuid=str(uuid.uuid4()),
             created_by=user.id
         )
         db.session.add(new_order)
         db.session.flush()
 
-        # CASE 1: Cash on Delivery
+        # CASE 1: Cash on Delivery (COD)
         if selected_method == PaymentMethod.cod:
             new_order.status = OrderStatus.processing
+            
+            # 🔥 COD order place hote hi uske cart items ko empty kardo
+            for item in cart_items:
+                item.is_active = False
+                
             db.session.commit()
             return jsonify({"success": True, "message": "COD Order Placed!", "method": "cod"}), 201
 

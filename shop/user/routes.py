@@ -10,6 +10,7 @@ from shop.user.api.checkout import checkout_action
 from shop.user.api.verify_payment import verify_payment_action
 from shop.user.api.orders import get_orders_action
 from shop.user.api.orders import get_orders_action, get_order_status_action
+from shop.user.api.webhook import razorpay_webhook_action   
 
 
 # ==========================================
@@ -87,3 +88,8 @@ def get_orders_route():
 @user_bp.route('/order/status/<order_uuid>', methods=['GET'])
 def get_order_status_route(order_uuid):
     return get_order_status_action(order_uuid)
+
+# 🔥 WEBHOOK ROUTE (No JWT Required)
+@user_bp.route('/webhook/razorpay', methods=['POST'])
+def razorpay_webhook_route():
+    return razorpay_webhook_action()
