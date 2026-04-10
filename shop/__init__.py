@@ -31,5 +31,4 @@ def create_app(config_class=Config):
     def home():
         return {"message": "E-Commerce API is Running!"}
 
-    # BAS YE EK LINE ADD KARNI HAI (Indentation ka dhyan rakhna)
     return app
