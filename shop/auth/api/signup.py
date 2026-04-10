@@ -20,10 +20,45 @@ def signup_action():
         if requested_role not in {'customer', 'seller'}:
             return error_response("Invalid role", 400)
 
+        # 1. Check if user already exists
         existing_user = User.query.filter((User.email == email) | (User.username == username)).first()
+        
         if existing_user:
-            return error_response('User already exists', 409)
+            # 🔥 REACTIVATION LOGIC: Agar user pehle se hai par usne account delete kiya tha
+            if not existing_user.is_active:
+                existing_user.is_active = True
+                existing_user.username = username # Username update kar do naye wale se
+                existing_user.phone = phone
+                existing_user.password = bcrypt.generate_password_hash(password).decode('utf-8') # Naya password
+                existing_user.is_verified = False # Security ke liye wapas email verify karwao
+                
+                db.session.flush()
+                
+                # Wapas verification email bhejo
+                serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+                token = serializer.dumps(existing_user.email, salt='email-confirm')
+                send_verification_email(existing_user.email, token)
+                
+                db.session.commit()
+                
+                return jsonify({
+                    "success": True, 
+                    "message": "Welcome back! Your account has been reactivated. Please check email to verify.",
+                    "data": {
+                        "uuid": existing_user.uuid,
+                        "username": existing_user.username,
+                        "email": existing_user.email,
+                        "role": requested_role
+                    }
+                }), 200
+            
+            # Agar user active hai aur fir bhi signup try kar raha hai
+            else:
+                return error_response('User already exists', 409)
 
+        # ==========================================
+        # NORMAL SIGNUP LOGIC (Naye User ke liye)
+        # ==========================================
         user_role = Role.query.filter_by(role_name=requested_role).first()
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
 
@@ -60,5 +95,5 @@ def signup_action():
 
     except Exception as e:
         db.session.rollback()
-        print("SIGNUP ERROR:", e)
+        current_app.logger.error(f"SIGNUP ERROR: {str(e)}") # 🔥 Yahan bhi apna naya logger laga diya!
         return error_response(str(e), 500)

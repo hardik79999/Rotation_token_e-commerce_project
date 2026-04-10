@@ -8,8 +8,15 @@ from shop.auth.api.profile import profile_action
 from shop.auth.api.logout import logout_action
 from shop.auth.api.forgot_password import forgot_password_action
 from shop.auth.api.reset_password import reset_password_action
+from shop.auth.api.profile_delete import soft_delete_user_action
+
+
+from shop.extensions import limiter
+
+
 
 @auth_bp.route('/login', methods=['POST'])
+@limiter.limit("5 per minute")
 def login_route():
     return login_action()
 
@@ -40,3 +47,7 @@ def forgot_password_route():
 @auth_bp.route('/reset-password', methods=['POST'])
 def reset_password_route():
     return reset_password_action()
+
+@auth_bp.route('/delete-account', methods=['DELETE'])
+def delete_account_route():
+    return soft_delete_user_action()

@@ -6,6 +6,8 @@ from shop.models import User, Order, Payment, Address, PaymentMethod, OrderStatu
 from shop.utils.api_response import error_response
 from shop.utils.razorpay_service import get_razorpay_client
 
+from flask import current_app
+
 def checkout_action():
     try:
         verify_jwt_in_request()
@@ -93,5 +95,5 @@ def checkout_action():
 
     except Exception as e:
         db.session.rollback()
-        print("CHECKOUT ERROR:", e)
+        current_app.logger.error(f"Payment Failed: {str(e)}")
         return error_response(f"Checkout failed: {str(e)}", 500)

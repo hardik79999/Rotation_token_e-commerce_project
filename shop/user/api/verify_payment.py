@@ -12,6 +12,8 @@ from flask_jwt_extended import verify_jwt_in_request
 # 🔥 Isko badal kar ye kar do:
 from flask_jwt_extended import verify_jwt_in_request, get_jwt
 
+from flask import current_app
+
 def verify_payment_action():
     try:
         verify_jwt_in_request()
@@ -70,4 +72,5 @@ def verify_payment_action():
 
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f"Payment Failed: {str(e)}")
         return error_response(str(e), 500)
