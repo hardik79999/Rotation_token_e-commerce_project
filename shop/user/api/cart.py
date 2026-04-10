@@ -72,3 +72,35 @@ def get_cart_action():
         }), 200
     except Exception as e:
         return error_response(str(e), 500)
+    
+
+
+def update_cart_item_action():
+    try:
+        verify_jwt_in_request()
+        user = User.query.filter_by(uuid=get_jwt().get("user_uuid")).first()
+        data = request.get_json() or {}
+        
+        product_uuid = data.get('product_uuid')
+        new_quantity = int(data.get('quantity', 0))
+
+        product = Product.query.filter_by(uuid=product_uuid).first()
+        if not product: return error_response("Product not found", 404)
+
+        cart_item = CartItem.query.filter_by(user_id=user.id, product_id=product.id).first()
+        if not cart_item: return error_response("Item not in cart", 404)
+
+        # 🔥 Soft Delete Logic
+        if new_quantity <= 0:
+            cart_item.is_active = False # Deleted from cart
+            msg = "Item removed from cart"
+        else:
+            cart_item.quantity = new_quantity
+            cart_item.is_active = True # Reactivate if it was softly deleted before
+            msg = "Cart updated"
+
+        db.session.commit()
+        return jsonify({"success": True, "message": msg}), 200
+    except Exception as e:
+        db.session.rollback()
+        return error_response(str(e), 500)
