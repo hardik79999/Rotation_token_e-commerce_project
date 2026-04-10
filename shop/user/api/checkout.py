@@ -3,7 +3,7 @@ from flask_jwt_extended import verify_jwt_in_request, get_jwt
 from shop.extensions import db
 from shop.models import User, Order, Payment # (Tumhare models ke hisaab se)
 from shop.utils.api_response import error_response
-from shop.utils.azorpay_service import get_razorpay_client
+from shop.utils.razorpay_service import get_razorpay_client
 import uuid
 
 def checkout_action():
