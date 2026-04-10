@@ -42,7 +42,7 @@ class BaseModel(db.Model):
     
     # 6 MANDATORY FIELDS (Auditing)
     is_active = db.Column(db.Boolean, default=True)
-    created_by = db.Column(db.Integer, nullable=True) # Integer is safe here
+    created_by = db.Column(db.Integer, nullable=True)
     updated_by = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=db.func.now())
@@ -84,13 +84,17 @@ class Otp(BaseModel):
 class Address(BaseModel):
     __tablename__ = 'addresses'
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
     full_name = db.Column(db.String(100), nullable=False)
-    phone_number = db.Column(db.String(15), nullable=False)
+    phone_number = db.Column(db.String(20), nullable=False)
     street = db.Column(db.String(255), nullable=False)
     city = db.Column(db.String(100), nullable=False)
     state = db.Column(db.String(100), nullable=False)
     pincode = db.Column(db.String(20), nullable=False)
     is_default = db.Column(db.Boolean, default=False)
+    
+    # NOTE: is_active, created_by, uuid, id sab BaseModel se automatic aayega!
+    # NOTE: Relationship User table me already defined hai, isliye yahan zaroorat nahi.
 
 
 # =================================================================================

@@ -1,7 +1,8 @@
 from flask import request, jsonify
 from flask_jwt_extended import verify_jwt_in_request, get_jwt
 from shop.extensions import db
-from shop.models import User, Order, Payment # (Tumhare models ke hisaab se)
+# 🔥 Dhyan do: Yahan 'Address' bhi import karna hai
+from shop.models import User, Order, Payment, Address 
 from shop.utils.api_response import error_response
 from shop.utils.razorpay_service import get_razorpay_client
 import uuid
@@ -13,18 +14,29 @@ def checkout_action():
         user = User.query.filter_by(uuid=user_uuid).first()
 
         data = request.get_json() or {}
-        payment_method = data.get('payment_method', 'online') # cod ya online
+        payment_method = data.get('payment_method', 'online') 
+        address_uuid = data.get('address_uuid') # 🔥 NAYA: Address mangwao
+
+        if not address_uuid:
+            return error_response("Delivery address is required!", 400)
+
+        # 🔥 NAYA: Database me address check karo
+        delivery_address = Address.query.filter_by(uuid=address_uuid, user_id=user.id, is_active=True).first()
+        if not delivery_address:
+            return error_response("Invalid delivery address", 404)
         
-        # 1. Cart ka Total Amount nikal lo (Dummy ke liye main 500 maan raha hu)
-        # total_amount = calculate_cart_total(user.id) 
+        # 1. Cart ka Total Amount nikal lo (Abhi test ke liye 500 hai)
         total_amount = 500.00 
 
-        # 2. Database me pending order banao
+        # 2. Database me pending order banao (Ab address_id aur payment_method bhi daal diya)
         new_order = Order(
             user_id=user.id,
+            address_id=delivery_address.id,   # 🔥 FIXED
+            payment_method=payment_method,    # 🔥 FIXED
             total_amount=total_amount,
             status='pending',
-            uuid=str(uuid.uuid4())
+            uuid=str(uuid.uuid4()),
+            created_by=user.id
         )
         db.session.add(new_order)
         db.session.flush() # ID generate karne ke liye
@@ -39,12 +51,11 @@ def checkout_action():
         # ==========================================
         client = get_razorpay_client()
         
-        # Razorpay ko paise "Paise" (cents) me chahiye hote hain, isliye * 100
         razorpay_order_data = {
             "amount": int(total_amount * 100), 
             "currency": "INR",
             "receipt": new_order.uuid,
-            "payment_capture": 1 # Auto capture
+            "payment_capture": 1 
         }
         
         razorpay_order = client.order.create(data=razorpay_order_data)
@@ -55,12 +66,12 @@ def checkout_action():
             payment_method='razorpay',
             amount=total_amount,
             status='pending',
-            transaction_id=razorpay_order['id'] # Yahan Razorpay ki ID aayegi (e.g. order_IluGWcBm9U8zJ8)
+            transaction_id=razorpay_order['id'],
+            created_by=user.id
         )
         db.session.add(new_payment)
         db.session.commit()
 
-        # Frontend ko ye data dena zaroori hai taaki wo popup khol sake
         return jsonify({
             "success": True,
             "method": "online",
@@ -68,7 +79,7 @@ def checkout_action():
                 "razorpay_order_id": razorpay_order['id'],
                 "amount": razorpay_order['amount'],
                 "currency": razorpay_order['currency'],
-                "key_id": current_app.config['RAZORPAY_KEY_ID']
+                "key_id": current_app.config.get('RAZORPAY_KEY_ID')
             }
         }), 201
 
