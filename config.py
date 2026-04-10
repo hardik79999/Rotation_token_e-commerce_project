@@ -34,3 +34,10 @@ class Config:
     
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=7)
+
+
+
+
+    # config.py me add karo
+    RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID')
+    RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET')
