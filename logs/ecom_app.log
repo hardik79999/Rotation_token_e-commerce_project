@@ -24,3 +24,8 @@
 2026-04-11 10:46:12,960 INFO: E-Commerce API Startup! 🚀 [in C:\Users\ASUS\OneDrive\Desktop\Technotery\Cookies\Rotation_token_e-commerce_project\shop\__init__.py:29]
 2026-04-11 10:49:36,687 INFO: E-Commerce API Startup! 🚀 [in C:\Users\ASUS\OneDrive\Desktop\Technotery\Cookies\Rotation_token_e-commerce_project\shop\__init__.py:29]
 2026-04-11 10:57:48,230 INFO: E-Commerce API Startup! 🚀 [in C:\Users\ASUS\OneDrive\Desktop\Technotery\Cookies\Rotation_token_e-commerce_project\shop\__init__.py:29]
+2026-04-11 11:11:09,665 INFO: E-Commerce API Startup! 🚀 [in C:\Users\ASUS\OneDrive\Desktop\Technotery\Cookies\Rotation_token_e-commerce_project\shop\__init__.py:29]
+2026-04-11 11:11:10,635 INFO: E-Commerce API Startup! 🚀 [in C:\Users\ASUS\OneDrive\Desktop\Technotery\Cookies\Rotation_token_e-commerce_project\shop\__init__.py:29]
+2026-04-11 11:13:34,306 ERROR: Order Update Error: Signature has expired [in C:\Users\ASUS\OneDrive\Desktop\Technotery\Cookies\Rotation_token_e-commerce_project\shop\seller\api\order_status.py:43]
+2026-04-11 11:14:30,691 INFO: Order 514b20af-d8e8-4321-9c8f-e839725b7440 updated to shipped. Email sent to ravibandhiya7899@gmail.com [in C:\Users\ASUS\OneDrive\Desktop\Technotery\Cookies\Rotation_token_e-commerce_project\shop\seller\api\order_status.py:37]
+2026-04-11 11:15:45,167 INFO: E-Commerce API Startup! 🚀 [in C:\Users\ASUS\OneDrive\Desktop\Technotery\Cookies\Rotation_token_e-commerce_project\shop\__init__.py:29]

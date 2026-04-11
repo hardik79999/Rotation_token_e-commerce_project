@@ -1,7 +1,7 @@
 from flask import request, jsonify, current_app
 from flask_jwt_extended import verify_jwt_in_request, get_jwt
 from shop.extensions import db
-from shop.models import Product, Order, OrderStatus, Review, User
+from shop.models import Product, Order, OrderStatus, Review, User, OrderItem
 # Agar OrderItem model ka naam kuch aur hai (jaise CartItem ko use kiya hai), toh wo import kar lena
 from shop.utils.api_response import error_response
 from sqlalchemy import func
