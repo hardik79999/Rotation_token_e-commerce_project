@@ -111,7 +111,7 @@ class SellerCategory(BaseModel):
     __tablename__ = 'seller_categories'
     seller_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
-    is_approved = db.Column(db.Boolean, default=True)
+    is_approved = db.Column(db.Boolean, default=False)
 
 class Product(BaseModel):
     __tablename__ = 'products'

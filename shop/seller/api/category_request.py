@@ -21,7 +21,14 @@ def category_request_action():
             status = 'Approved' if existing.is_approved else 'Pending'
             return error_response(f'You already have a {status} request.', 400)
 
-        new_request = SellerCategory(seller_id=seller.id, category_id=category.id, is_approved=False, created_by=seller.id)
+        # 🔥 YAHAN FIX KIYA HAI: is_active=True explicitly add kar diya taaki DB me humesha 1 jaye
+        new_request = SellerCategory(
+            seller_id=seller.id, 
+            category_id=category.id, 
+            is_approved=False, 
+            is_active=True,  # <-- Ye sabse zaroori line
+            created_by=seller.id
+        )
         db.session.add(new_request)
         db.session.commit()
 

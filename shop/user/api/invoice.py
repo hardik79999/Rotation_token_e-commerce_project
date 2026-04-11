@@ -16,7 +16,7 @@ def generate_invoice_action(order_uuid):
         payment = Payment.query.filter_by(order_id=order.id).first()
 
         # 🔥 FAKE TAX CALCULATION (Industry Standard: 18% GST Example)
-        total_amount = float(order.total_price)
+        total_amount = float(order.total_amount)
         base_price = round(total_amount / 1.18, 2)
         tax_amount = round(total_amount - base_price, 2)
 
