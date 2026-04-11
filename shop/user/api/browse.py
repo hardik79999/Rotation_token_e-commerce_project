@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from shop.models import Category, Product
+from shop.models import Category, Product, User  # 🔥 User import karna zaroori hai Magic Query ke liye
 from shop.utils.api_response import error_response
 from shop.seller.api.helpers import serialize_seller_product
 
@@ -20,10 +20,17 @@ def get_products_action():
         category_uuid = request.args.get('category', '').strip()
         sort_by = request.args.get('sort_by', 'newest')
 
-        # Base Query
-        query = Product.query.filter_by(is_active=True)
+        # ==========================================
+        # 🎩 THE MAGIC QUERY (Relational Integrity)
+        # Ye sirf un products ko layega jo active hain 
+        # AND jinka seller (User) bhi active hai.
+        # ==========================================
+        query = Product.query.join(User).filter(
+            Product.is_active == True,
+            User.is_active == True
+        )
 
-        # 🔥 2. Search Logic (Naam ya description me dhoondho)
+        # 🔥 2. Search Logic
         if search_query:
             query = query.filter(Product.name.ilike(f"%{search_query}%") | Product.description.ilike(f"%{search_query}%"))
 
@@ -31,7 +38,8 @@ def get_products_action():
         if category_uuid:
             category = Category.query.filter_by(uuid=category_uuid, is_active=True).first()
             if category:
-                query = query.filter_by(category_id=category.id)
+                # Jab JOIN use karte hain toh .filter() zyada safe hota hai .filter_by() se
+                query = query.filter(Product.category_id == category.id)
 
         # 🔥 4. Sorting Logic
         if sort_by == 'price_low_to_high':
@@ -58,9 +66,16 @@ def get_products_action():
 
 def get_single_product_action(product_uuid):
     try:
-        product = Product.query.filter_by(uuid=product_uuid, is_active=True).first()
+        # 🔥 MAGIC QUERY in Single Product
+        # Taki blocked seller ka product direct link se bhi access na ho
+        product = Product.query.join(User).filter(
+            Product.uuid == product_uuid, 
+            Product.is_active == True,
+            User.is_active == True
+        ).first()
+        
         if not product:
-            return error_response("Product not found", 404)
+            return error_response("Product not found or seller is inactive", 404)
         
         return jsonify({"success": True, "data": serialize_seller_product(product)}), 200
     except Exception as e:

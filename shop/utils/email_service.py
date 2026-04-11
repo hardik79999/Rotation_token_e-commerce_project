@@ -83,3 +83,16 @@ def send_otp_email(user_email, otp_code):
     except Exception as e:
         print("OTP EMAIL ERROR:", e)
         return False
+    
+
+
+
+
+def send_order_status_email(user_email, order_uuid, new_status):
+    msg = Message(
+        subject=f"Order Update: Your order is now {new_status.upper()}",
+        sender=current_app.config['MAIL_USERNAME'],
+        recipients=[user_email]
+    )
+    msg.body = f"Hello,\n\nYour order (ID: {order_uuid}) status has been updated to: {new_status}.\n\nThank you for shopping with us!"
+    mail.send(msg)

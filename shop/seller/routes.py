@@ -6,6 +6,7 @@ from shop.seller.api.update_product import update_product_action
 from shop.seller.api.delete_product import delete_product_action
 from shop.seller.api.category_request import category_request_action
 from shop.seller.api.get_categories import get_categories_action
+from shop.seller.api.order_status import update_order_status_action
 
 @seller_bp.route('/product', methods=['POST'])
 def create_product_route():
@@ -30,3 +31,7 @@ def category_request_route():
 @seller_bp.route('/my-categories', methods=['GET'])
 def get_categories_route():
     return get_categories_action()  
+
+@seller_bp.route('/order/<order_uuid>/status', methods=['PUT'])
+def update_order_status_route(order_uuid):
+    return update_order_status_action(order_uuid)

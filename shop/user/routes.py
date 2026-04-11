@@ -5,13 +5,12 @@ from shop.user.api.browse import get_categories_action, get_products_action, get
 from shop.user.api.address import add_address_action, get_addresses_action
 from shop.user.api.cart import add_to_cart_action, get_cart_action, update_cart_item_action
 from shop.user.api.wishlist import toggle_wishlist_action, get_wishlist_action
-from shop.user.api.review import add_review_action
 from shop.user.api.checkout import checkout_action
 from shop.user.api.verify_payment import verify_payment_action
-from shop.user.api.orders import get_orders_action
 from shop.user.api.orders import get_orders_action, get_order_status_action
 from shop.user.api.webhook import razorpay_webhook_action   
-
+from shop.user.api.review import add_product_review_action
+from shop.user.api.invoice import generate_invoice_action
 
 # ==========================================
 # 🌐 PUBLIC BROWSING ROUTES (No Login Required)
@@ -65,9 +64,9 @@ def toggle_wishlist_route():
 def get_wishlist_route(): 
     return get_wishlist_action()
 
-@user_bp.route('/review', methods=['POST'])
-def add_review_route(): 
-    return add_review_action()
+@user_bp.route('/product/<product_uuid>/review', methods=['POST'])
+def submit_review_route(product_uuid):
+    return add_product_review_action(product_uuid)
 
 # ==========================================
 # 💸 CHECKOUT & ORDERS (PAYMENT FLOW)
@@ -84,10 +83,13 @@ def verify_payment_route():
 def get_orders_route():
     return get_orders_action()
 
-# 🔥 NAYA ROUTE: ORDER STATUS
 @user_bp.route('/order/status/<order_uuid>', methods=['GET'])
 def get_order_status_route(order_uuid):
     return get_order_status_action(order_uuid)
+
+@user_bp.route('/order/<order_uuid>/invoice', methods=['GET'])
+def get_invoice_route(order_uuid):
+    return generate_invoice_action(order_uuid)
 
 # 🔥 WEBHOOK ROUTE (No JWT Required)
 @user_bp.route('/webhook/razorpay', methods=['POST'])
