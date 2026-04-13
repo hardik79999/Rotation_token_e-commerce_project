@@ -1,6 +1,7 @@
 from flask import Flask , jsonify
 from config import Config
 from shop.extensions import db, migrate, jwt, bcrypt, mail, limiter
+from flasgger import Swagger
 
 
 
@@ -37,6 +38,7 @@ def create_app(config_class=Config):
     bcrypt.init_app(app)
     mail.init_app(app)
     limiter.init_app(app) 
+    Swagger(app)
 
     from shop import models
 

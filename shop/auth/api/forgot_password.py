@@ -1,5 +1,6 @@
 import random
-from flask import request, jsonify
+from datetime import datetime, timedelta
+from flask import request, jsonify, current_app
 from shop.extensions import db
 from shop.models import User, Otp, OTPAction
 from shop.utils.api_response import error_response
@@ -8,39 +9,47 @@ from shop.utils.email_service import send_otp_email
 def forgot_password_action():
     try:
         data = request.get_json() or {}
-        email = (data.get('email') or '').strip()
+        email = data.get('email')
 
         if not email:
             return error_response("Email is required", 400)
 
+        # 1. User dhundho
         user = User.query.filter_by(email=email, is_active=True).first()
         if not user:
-            return error_response("No active account found with this email", 404)
+            # Security Note: Hacker ko mat batao ki email galat hai
+            return jsonify({"success": True, "message": "If this email is registered, you will receive an OTP."}), 200
 
-        # 🔥 6-Digit Random OTP Generate karo
+        # 2. Purane active OTPs ko invalidate (is_used = True) kar do
+        Otp.query.filter_by(user_id=user.id, action=OTPAction.password_reset, is_used=False).update({"is_used": True})
+        
+        # 3. Naya 6-digit OTP Generate karo
         otp_code = str(random.randint(100000, 999999))
 
-        # Purane unused reset OTPs ko disable kar do taaki confusion na ho
-        Otp.query.filter_by(user_id=user.id, action=OTPAction.password_reset, is_used=False).update({'is_used': True})
-
-        # Naya OTP database me save karo
+        # 4. 🔥 Database me save karo
         new_otp = Otp(
             user_id=user.id,
             otp_code=otp_code,
             action=OTPAction.password_reset,
+            is_used=False,
+            expires_at=datetime.utcnow() + timedelta(minutes=10),
             created_by=user.id
         )
         db.session.add(new_otp)
         db.session.commit()
 
-        # Email bhejo
+        # 5. Email Bhejo
         email_sent = send_otp_email(user.email, otp_code)
         
         if not email_sent:
-            return error_response("Failed to send OTP email. Please try again later.", 500)
+            return error_response("Failed to send email. Please check your mail configuration.", 500)
 
-        return jsonify({"success": True, "message": "OTP sent to your email successfully!"}), 200
+        return jsonify({
+            "success": True, 
+            "message": "OTP sent successfully to your email!"
+        }), 200
 
     except Exception as e:
         db.session.rollback()
-        return error_response(str(e), 500)
+        current_app.logger.error(f"Forgot Password Error: {str(e)}")
+        return error_response(f"An error occurred: {str(e)}", 500)
