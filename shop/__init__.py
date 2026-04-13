@@ -38,7 +38,18 @@ def create_app(config_class=Config):
     bcrypt.init_app(app)
     mail.init_app(app)
     limiter.init_app(app) 
-    Swagger(app)
+    # === FLASGGER SWAGGER SETUP (COOKIE + CSRF SECURITY) ===
+    swagger_template = {
+        "securityDefinitions": {
+            "CSRF-Token": {
+                "type": "apiKey",
+                "name": "X-CSRF-TOKEN", # flask_jwt_extended by default ye header dhundhta hai
+                "in": "header",
+                "description": "After hitting the Login API, copy the 'suserf_access_token' from the response/cookies and paste it here."
+            }
+        }
+    }
+    Swagger(app, template=swagger_template)
 
     from shop import models
 

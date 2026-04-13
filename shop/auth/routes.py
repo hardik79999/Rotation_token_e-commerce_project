@@ -52,7 +52,7 @@ def login_route():
             password: {type: string}
     responses:
       200:
-        description: Returns Access & Refresh Tokens
+        description: Returns Access & Refresh Tokens in Cookies
     """
     return login_action()
 
@@ -63,6 +63,8 @@ def refresh_route():
     ---
     tags:
       - 🔐 Authentication
+    security:
+      - CSRF-Token: []
     responses:
       200:
         description: New Access Token generated
@@ -76,6 +78,8 @@ def profile_route():
     ---
     tags:
       - 👤 User Profile
+    security:
+      - CSRF-Token: []
     responses:
       200:
         description: User details fetched
@@ -89,6 +93,8 @@ def logout_route():
     ---
     tags:
       - 🔐 Authentication
+    security:
+      - CSRF-Token: []
     responses:
       200:
         description: Successfully logged out
@@ -144,6 +150,8 @@ def delete_account_route():
     ---
     tags:
       - 👤 User Profile
+    security:
+      - CSRF-Token: []
     responses:
       200:
         description: Account deleted

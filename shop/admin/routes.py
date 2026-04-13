@@ -7,10 +7,11 @@ from shop.admin.api.manage_seller import toggle_seller_status_action
 def create_category_route():
     """
     Create New Category
-    Sirf Admin naye global categories bana sakta hai.
     ---
     tags:
       - 🛡️ Admin Panel
+    security:
+      - CSRF-Token: []
     parameters:
       - name: body
         in: body
@@ -32,6 +33,8 @@ def approve_seller_category_route(seller_category_uuid):
     ---
     tags:
       - 🛡️ Admin Panel
+    security:
+      - CSRF-Token: []
     parameters:
       - name: seller_category_uuid
         in: path
@@ -56,6 +59,8 @@ def toggle_seller_route(seller_uuid):
     ---
     tags:
       - 🛡️ Admin Panel
+    security:
+      - CSRF-Token: []
     parameters:
       - name: seller_uuid
         in: path

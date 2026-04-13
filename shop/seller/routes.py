@@ -11,13 +11,47 @@ from shop.seller.api.order_status import update_order_status_action
 @seller_bp.route('/product', methods=['POST'])
 def create_product_route():
     """
-    Create a New Product
+    Create a New Product (With Multiple Images)
     ---
     tags:
       - 🏪 Seller Dashboard
+    security:
+      - CSRF-Token: []
+    consumes:
+      - multipart/form-data
+    parameters:
+      - name: name
+        in: formData
+        type: string
+        required: true
+      - name: description
+        in: formData
+        type: string
+        required: true
+      - name: price
+        in: formData
+        type: number
+        required: true
+      - name: stock
+        in: formData
+        type: integer
+      - name: category_uuid
+        in: formData
+        type: string
+        required: true
+      - name: specifications
+        in: formData
+        type: string
+      - name: images        # 🔥 YAHAN MULTIPLE ENABLE KIYA HAI
+        in: formData
+        type: array
+        items:
+          type: file
+        collectionFormat: multi
+        required: false
     responses:
       201:
-        description: Product created
+        description: Product created successfully
     """
     return create_product_action()
 
@@ -28,6 +62,8 @@ def get_products_route():
     ---
     tags:
       - 🏪 Seller Dashboard
+    security:
+      - CSRF-Token: []
     responses:
       200:
         description: List of seller's products
@@ -37,15 +73,47 @@ def get_products_route():
 @seller_bp.route('/product/<product_uuid>', methods=['PUT'])
 def update_product_route(product_uuid):
     """
-    Update Product
+    Update Product (With Images)
     ---
     tags:
       - 🏪 Seller Dashboard
+    security:
+      - CSRF-Token: []
+    consumes:
+      - multipart/form-data
     parameters:
       - name: product_uuid
         in: path
         type: string
         required: true
+      - name: name
+        in: formData
+        type: string
+        required: false
+      - name: description
+        in: formData
+        type: string
+        required: false
+      - name: price
+        in: formData
+        type: number
+        required: false
+      - name: stock
+        in: formData
+        type: integer
+        required: false
+      - name: category_uuid
+        in: formData
+        type: string
+        required: false
+      - name: specifications
+        in: formData
+        type: string
+        required: false
+      - name: images
+        in: formData
+        type: file
+        required: false
     responses:
       200:
         description: Product updated
@@ -59,6 +127,8 @@ def delete_product_route(product_uuid):
     ---
     tags:
       - 🏪 Seller Dashboard
+    security:
+      - CSRF-Token: []
     parameters:
       - name: product_uuid
         in: path
@@ -77,6 +147,8 @@ def category_request_route():
     ---
     tags:
       - 🏪 Seller Dashboard
+    security:
+      - CSRF-Token: []
     parameters:
       - name: body
         in: body
@@ -97,6 +169,8 @@ def get_categories_route():
     ---
     tags:
       - 🏪 Seller Dashboard
+    security:
+      - CSRF-Token: []
     responses:
       200:
         description: List of approved categories
@@ -110,6 +184,8 @@ def update_order_status_route(order_uuid):
     ---
     tags:
       - 🏪 Seller Dashboard
+    security:
+      - CSRF-Token: []
     parameters:
       - name: order_uuid
         in: path

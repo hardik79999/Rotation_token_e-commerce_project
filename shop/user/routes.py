@@ -86,6 +86,8 @@ def add_address_route():
     ---
     tags:
       - 📍 User Address
+    security:
+      - CSRF-Token: []
     parameters:
       - name: body
         in: body
@@ -111,6 +113,8 @@ def get_addresses_route():
     ---
     tags:
       - 📍 User Address
+    security:
+      - CSRF-Token: []
     responses:
       200:
         description: List of addresses
@@ -127,6 +131,8 @@ def add_to_cart_route():
     ---
     tags:
       - 🛒 User Cart
+    security:
+      - CSRF-Token: []
     parameters:
       - name: body
         in: body
@@ -148,6 +154,8 @@ def get_cart_route():
     ---
     tags:
       - 🛒 User Cart
+    security:
+      - CSRF-Token: []
     responses:
       200:
         description: Cart items and total bill
@@ -161,6 +169,8 @@ def update_cart_route():
     ---
     tags:
       - 🛒 User Cart
+    security:
+      - CSRF-Token: []
     parameters:
       - name: body
         in: body
@@ -185,6 +195,8 @@ def toggle_wishlist_route():
     ---
     tags:
       - ❤️ Wishlist & Reviews
+    security:
+      - CSRF-Token: []
     parameters:
       - name: body
         in: body
@@ -205,6 +217,8 @@ def get_wishlist_route():
     ---
     tags:
       - ❤️ Wishlist & Reviews
+    security:
+      - CSRF-Token: []
     responses:
       200:
         description: Wishlisted products
@@ -218,6 +232,8 @@ def submit_review_route(product_uuid):
     ---
     tags:
       - ❤️ Wishlist & Reviews
+    security:
+      - CSRF-Token: []
     parameters:
       - name: product_uuid
         in: path
@@ -246,6 +262,8 @@ def checkout_route():
     ---
     tags:
       - 💸 Checkout & Payments
+    security:
+      - CSRF-Token: []
     parameters:
       - name: body
         in: body
@@ -267,6 +285,8 @@ def verify_payment_route():
     ---
     tags:
       - 💸 Checkout & Payments
+    security:
+      - CSRF-Token: []
     parameters:
       - name: body
         in: body
@@ -289,6 +309,8 @@ def get_orders_route():
     ---
     tags:
       - 💸 Checkout & Payments
+    security:
+      - CSRF-Token: []
     responses:
       200:
         description: List of all orders
@@ -302,6 +324,8 @@ def get_order_status_route(order_uuid):
     ---
     tags:
       - 💸 Checkout & Payments
+    security:
+      - CSRF-Token: []
     parameters:
       - name: order_uuid
         in: path
@@ -320,6 +344,8 @@ def get_invoice_route(order_uuid):
     ---
     tags:
       - 💸 Checkout & Payments
+    security:
+      - CSRF-Token: []
     parameters:
       - name: order_uuid
         in: path
