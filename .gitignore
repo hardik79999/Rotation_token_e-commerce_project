@@ -4,7 +4,7 @@
 .env
 .env*
 .venvz
-
+__pycache__/
 # ========================
 # 2. Virtual Environment
 # ========================
