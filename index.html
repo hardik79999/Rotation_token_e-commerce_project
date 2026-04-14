@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hardik Store - Checkout</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        body { font-family: Arial; text-align: center; margin-top: 100px; background-color: #f4f4f9;}
+        #pay-btn { padding: 15px 30px; font-size: 18px; background: #3399cc; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        #pay-btn:hover { background: #287aa8; }
+    </style>
+</head>
+<body>
+
+    <h2>Complete Your Payment</h2>
+    <button id="pay-btn">Pay with Razorpay 💸</button>
+
+    <script>
+        document.getElementById('pay-btn').onclick = async function (e) {
+            e.preventDefault();
+
+            // STEP 1: Asli project me tu pehle apna /checkout API hit karega fetch() se
+            // Abhi testing ke liye, tu Postman se checkout hit kar aur jo order_id mile wo yahan paste kar de:
+            const order_id_from_backend = "order_SdH0S1MiCM7bfn"; // 👈 Postman wala order id yahan daal
+            
+            // STEP 2: Razorpay options setup karo
+            var options = {
+                "key": "rzp_test_SbkT6OIhOy6zjL", // Tera .env wala test Key ID
+                "amount": "498000", // Paise me amount hota hai (₹1500 = 150000 paise)
+                "currency": "INR",
+                "name": "Hardik Store",
+                "description": "Test Transaction",
+                "order_id": order_id_from_backend, 
+                "handler": async function (response){
+                    // Ye function tab chalega jab payment successful ho jayegi!
+                    console.log("PAYMENT SUCCESSFUL!", response);
+                    alert("Paisa aa gaya bhai! Signature: " + response.razorpay_signature);
+
+                    // STEP 3: Asli data apne backend ko bhejo verify karne ke liye
+                    /*
+                    try {
+                        const verifyRes = await fetch('http://127.0.0.1:7899/api/user/verify-payment', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': 'tera_cookie_csrf_token_agar_hai'
+                            },
+                            body: JSON.stringify({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature
+                            })
+                        });
+                        const data = await verifyRes.json();
+                        alert(data.message);
+                    } catch (err) {
+                        console.error("Verification failed", err);
+                    }
+                    */
+                },
+                "prefill": {
+                    "name": "Customer Name",
+                    "email": "customer@example.com",
+                    "contact": "9000090000"
+                },
+                "theme": {
+                    "color": "#3399cc"
+                }
+            };
+
+            // Pop-up kholo!
+            var rzp1 = new Razorpay(options);
+            rzp1.open();
+        }
+    </script>
+
+</body>
+</html>

@@ -362,11 +362,26 @@ def get_invoice_route(order_uuid):
 def razorpay_webhook_route():
     """
     Razorpay Payment Webhook
+    (Ye API hum manually call nahi karte, Razorpay khud isko hit karta hai background me)
     ---
     tags:
       - ⚓ Webhooks
+    parameters:
+      - name: X-Razorpay-Signature
+        in: header
+        type: string
+        required: true
+        description: Secret signature sent by Razorpay for security
+      - name: body
+        in: body
+        required: true
+        description: Webhook event payload sent by Razorpay
+        schema:
+          properties:
+            event: {type: string, example: "payment.captured"}
+            payload: {type: object}
     responses:
       200:
-        description: Webhook received
+        description: Webhook received and processed successfully
     """
     return razorpay_webhook_action()

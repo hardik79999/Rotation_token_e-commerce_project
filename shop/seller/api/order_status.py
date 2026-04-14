@@ -1,7 +1,7 @@
 from flask import request, jsonify, current_app
 from flask_jwt_extended import verify_jwt_in_request, get_jwt
 from shop.extensions import db
-from shop.models import Order, OrderStatus, User
+from shop.models import Order, OrderStatus, User , OrderTracking
 from shop.utils.api_response import error_response
 from shop.utils.email_service import send_order_status_email
 
@@ -28,6 +28,16 @@ def update_order_status_action(order_uuid):
 
         # Status Update karo
         order.status = new_status_enum
+
+        # 🔥 TRACKING HISTORY ENTRY (The Magic!)
+        tracking_msg = f"Your order has been updated to {new_status_enum.name.capitalize()}."
+        new_tracking = OrderTracking(
+            order_id=order.id,
+            status=new_status_enum,
+            message=tracking_msg
+        )
+        db.session.add(new_tracking)
+        
         db.session.commit()
 
         # 🔥 Customer ko email bhejo

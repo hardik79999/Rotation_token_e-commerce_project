@@ -2,6 +2,7 @@ from shop.admin import admin_bp
 from shop.admin.api.create_category import create_category_action
 from shop.admin.api.approve_category import approve_category_action
 from shop.admin.api.manage_seller import toggle_seller_status_action
+from shop.admin.api.dashboard import admin_dashboard_action
 
 @admin_bp.route('/category', methods=['POST'])
 def create_category_route():
@@ -71,3 +72,22 @@ def toggle_seller_route(seller_uuid):
         description: Seller status updated
     """
     return toggle_seller_status_action(seller_uuid)
+
+
+
+
+
+@admin_bp.route('/dashboard', methods=['GET'])
+def admin_dashboard_route():
+    """
+    Admin Analytics Dashboard 📊
+    ---
+    tags:
+      - 🛡️ Admin Panel
+    security:
+      - CSRF-Token: []
+    responses:
+      200:
+        description: Dashboard stats
+    """
+    return admin_dashboard_action()

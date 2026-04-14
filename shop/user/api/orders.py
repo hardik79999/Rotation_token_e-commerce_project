@@ -25,6 +25,7 @@ def get_orders_action():
         return error_response(str(e), 500)
 
 # 🔥 NAYA FUNCTION: SINGLE ORDER STATUS KE LIYE
+# 🔥 UPDATED FUNCTION: WITH TRACKING TIMELINE
 def get_order_status_action(order_uuid):
     try:
         verify_jwt_in_request()
@@ -34,13 +35,23 @@ def get_order_status_action(order_uuid):
         if not order:
             return error_response("Order not found", 404)
 
+        # Tracking History nikalna
+        tracking_history = []
+        for track in order.tracking:
+            tracking_history.append({
+                "status": track.status.name.capitalize() if hasattr(track.status, 'name') else str(track.status),
+                "message": track.message,
+                "date": track.created_at.strftime('%Y-%m-%d %H:%M:%S') if track.created_at else None
+            })
+
         return jsonify({
             "success": True,
             "data": {
                 "order_uuid": order.uuid,
-                "status": order.status.name if hasattr(order.status, 'name') else str(order.status),
+                "current_status": order.status.name.capitalize() if hasattr(order.status, 'name') else str(order.status),
                 "amount": order.total_amount,
                 "payment_method": order.payment_method.name if hasattr(order.payment_method, 'name') else str(order.payment_method),
+                "tracking_history": tracking_history  # 🔥 Ye rahi teri logistics timeline!
             }
         }), 200
     except Exception as e:
